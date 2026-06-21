@@ -1,0 +1,28 @@
+MATCH REPORT — input_video
+========================================================
+
+Team 0 dominated the match with 59% possession. The standout performer was Player 21 (Team 1), rated 9.5/10. Tactically: Team 0 counter-attacking, Team 1 attacking.
+
+Dominant team   : Team 0
+Man of the match: Player 21
+Weakest player  : Player 37
+
+TEAMS
+  Team 0: Counter-Attacking | Mid Block | Compact | Fast transitions
+  Team 1: Attacking | High Press | Compact | Fast transitions
+
+KEY INSIGHTS
+  - Team 0 controlled possession (59%).
+  - Player 21 (Team 1) was the standout at 9.5/10 — Very active and frequently involved in play. Covered a lot of ground.
+  - Team 0 played a Counter-Attacking game with a Mid Block and fast transitions.
+  - Team 1 played an Attacking game with a High Press and fast transitions.
+
+RECOMMENDATIONS
+  - Team 1 should improve ball retention and build-up to contest possession.
+
+TOP PLAYERS
+  Player 21          T1  rating  9.5/10  impact High   fatigue Medium | Very active and frequently involved in play. Covered a lot of ground.
+  Player 11          T0  rating  9.2/10  impact High   fatigue Medium | Very active and frequently involved in play. Covered a lot of ground.
+  Player 10          T0  rating  9.1/10  impact High   fatigue Medium | Very active and frequently involved in play. Covered a lot of ground. Showed strong top-end pace.
+  Player 16          T1  rating  8.8/10  impact High   fatigue Medium | Very active and frequently involved in play. Covered a lot of ground. Showed strong top-end pace.
+  Player 9           T0  rating  8.7/10  impact High   fatigue Medium | Very active and frequently involved in play. Covered a lot of ground.

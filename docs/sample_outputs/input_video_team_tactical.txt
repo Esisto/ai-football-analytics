@@ -1,0 +1,19 @@
+TEAM TACTICAL ANALYSIS — input_video
+========================================================
+
+TEAM 0
+  Compactness     : Compact              (players average 17.0 m from the team centroid)
+  Team Shape      : Balanced             (lateral spread of 15.1 m across the pitch width)
+  Attacking Zone  : Right                (47% of activity in the right channel)
+  Transition Speed: Fast                 (average player speed 10.4 km/h)
+  Build-up Style  : Direct Style         (stretched 11.1 m vertically with fast transitions)
+  Pressure Style  : Mid Block            (defensive block ~47 m up from its own goal)
+
+TEAM 1
+  Compactness     : Compact              (players average 14.7 m from the team centroid)
+  Team Shape      : Balanced             (lateral spread of 12.7 m across the pitch width)
+  Attacking Zone  : Right                (46% of activity in the right channel)
+  Transition Speed: Fast                 (average player speed 10.0 km/h)
+  Build-up Style  : Direct Style         (stretched 9.7 m vertically with fast transitions)
+  Pressure Style  : High Press           (defensive block ~62 m up from its own goal)
+

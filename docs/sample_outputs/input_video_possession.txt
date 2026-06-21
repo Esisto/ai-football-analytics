@@ -1,0 +1,8 @@
+BALL POSSESSION (field) — input_video
+========================================
+
+  Team 0 :  59.3 %  (277 frames)
+  Team 1 :  40.7 %  (190 frames)
+
+  dominant team   : Team 0
+  possessed frames: 467 / 750
