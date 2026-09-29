@@ -1,5 +1,32 @@
 # Mac M5 quick start (experimental futsal branch)
 
+## Interfaccia web locale
+
+Dalla cartella del progetto, usa lo stesso interprete Python con cui hai installato le dipendenze:
+
+```bash
+python -m streamlit run web_app.py
+```
+
+Il browser si apre su `http://localhost:8501`. L'app è vincolata a
+`127.0.0.1` per non esporre i filmati sulla rete della palestra. Carica un
+MP4/MOV (limite configurato: 2 GB) oppure indica il percorso di un file già
+sul Mac, senza copiarlo. Scegli YOLO11 Nano, dispositivo MPS e 300 frame,
+poi premi **Analizza il video**. Il primo avvio scarica il checkpoint
+generico COCO. Al termine l'app mostra FPS, rilevamenti, video annotato,
+download e log. Tutto l'elaborato viene salvato in `outputs/web_sessions/`,
+già esclusa da Git. Stop: `Ctrl+C` nel Terminale che ospita Streamlit.
+
+Se nel browser il video MP4V non viene riprodotto, scaricalo/aprilo localmente
+con un player compatibile; il file elaborato e il log restano disponibili.
+Il caricamento di un MOV HEVC può dipendere dai codec OpenCV installati,
+perciò H.264 MP4 è consigliato per la prima prova.
+
+Questa UI copre oggi la prova offline di detection/tracking generici, non la
+calibrazione futsal e non la live da iPhone. Le procedure CLI successive sono
+test avanzati separati, non prerequisiti per usare la dashboard.
+
+
 This branch can run without merging draft PR #1. Python 3.12 (Apple Silicon build)
 is the target development environment. macOS Terminal commands:
 
