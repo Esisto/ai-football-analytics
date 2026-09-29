@@ -857,11 +857,18 @@ def run_minimap(config, video_path, summary, role_summary):
     roles_map = mm.load_roles_map(roles_path) if roles_path else {}
     names_map = mm.load_player_names(roles_path) if roles_path else {}
 
-    renderer = mm.MinimapRenderer(
+    # Select the active playing surface per video. Without a futsal profile,
+    # retain the original eleven-a-side renderer and legacy behaviour.
+    from calibration.futsal_setup import load_profile
+    from calibration.futsal_pitch import FutsalMinimapRenderer
+    futsal_dims = load_profile(video_path, config.video.output_dir)
+    renderer_class = FutsalMinimapRenderer if futsal_dims is not None else mm.MinimapRenderer
+    renderer = renderer_class(
+        **({"dims": futsal_dims} if futsal_dims is not None else {}),
         px_per_meter=config.minimap.px_per_meter,
         player_radius=config.minimap.player_dot_radius,
         ball_radius=config.minimap.ball_dot_radius,
-        stripes=config.minimap.stripes,
+        **({} if futsal_dims is not None else {"stripes": config.minimap.stripes}),
         hide_referees=config.minimap.hide_referees,
         tactical_style=config.minimap.tactical_style,
     )
@@ -897,6 +904,11 @@ def run_minimap(config, video_path, summary, role_summary):
         "roles_source": roles_path,
         "calibration": str(cal_path),
         "reprojection_error_m": round(float(error), 4),
+        "sport": "futsal" if futsal_dims is not None else "football",
+        "pitch_dimensions_m": (
+            [futsal_dims.length, futsal_dims.width] if futsal_dims is not None
+            else [105.0, 68.0]),
+
     })
 
     fps = float(meta.get("video_fps", 25.0))
