@@ -71,8 +71,13 @@ def main(argv=None):
         previous = load_profile(video, args.output_dir)
         if previous != dims:
             parser.error("A different court profile already exists. Use a fresh output directory.")
-    elif cal_path.exists() != profile.exists():
-        parser.error("Calibration and profile must both exist, or neither. Use a fresh output directory.")
+    elif cal_path.exists() and not profile.exists():
+        parser.error("An existing calibration has no court profile. Use a fresh output directory.")
+    elif profile.exists() and not cal_path.exists():
+        # Recover from closing the UI without saving any reference points.
+        previous = load_profile(video, args.output_dir)
+        if previous != dims:
+            parser.error("Previous court profile uses different dimensions. Use a fresh output directory.")
     saved_profile = save_profile(video, dims, args.camera_position, args.output_dir)
     if not dims.is_regulation_size():
         print("Note: training court outside FIFA regulation dimensions; physical measurements are used.")
