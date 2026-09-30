@@ -9,7 +9,13 @@ if [ ! -d ai-football-analytics ]; then
   git clone -b feature/futsal-flexible-calibration https://github.com/Esisto/ai-football-analytics.git
 fi
 cd ai-football-analytics && git pull --ff-only
-python -m pip install -q "ultralytics>=8.3.0" roboflow
+# RunPod images mark system Python as externally managed (PEP 668), and a plain
+# `pip install ultralytics` upgrades torch to a build newer than the host driver
+# (seen 2026-09-30: torch 2.14/cu130 on a CUDA 12.8 driver -> no GPU, cuDNN errors).
+# Pin the image's own torch/torchvision so pip never replaces them.
+python -c "import torch, torchvision; print(f'torch=={torch.__version__}'); print(f'torchvision=={torchvision.__version__}')" > /tmp/pin.txt
+python -m pip install -q --break-system-packages -c /tmp/pin.txt "ultralytics>=8.3.0" roboflow
+python -c "import torch; assert torch.cuda.is_available(), 'CUDA broken after pip install'"
 # Ultralytics' OpenCV needs these on slim images.
 command -v apt-get >/dev/null && (apt-get update -qq && apt-get install -y -qq libgl1 libglib2.0-0 >/dev/null) || true
 nvidia-smi --query-gpu=name,memory.total --format=csv
