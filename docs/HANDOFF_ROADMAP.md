@@ -58,7 +58,23 @@ Augment: `fliplr=0.5`, `flipud=0` (niente capovolgimenti verticali), mosaic con
 configurazione persone; confrontare palloni rilevati **e** verificare a occhio i
 falsi positivi (il conteggio da solo non basta).
 
-## 3. Roadmap
+## 3. Camere supportate e calibrazione
+
+| Camera | Ruolo | Note di ripresa |
+|---|---|---|
+| GoPro HERO11 Black | Principale dove c'è poco spazio (campo intero) | Linear preferito; Wide solo se necessario (più distorsione). HyperSmooth/Horizon Lock OFF. |
+| DJI Osmo Pocket 3 | Qualità in poca luce (sensore 1") | FOV più stretto. Gimbal in **Lock**, ActiveTrack OFF, niente zoom. H.264, 4K 25 fps, colore normale. |
+| iPhone Pro | Seconda vista / confronto | 1× se entra tutto; "Blocca fotocamera" ON; H.264. |
+
+Due livelli di calibrazione, da non confondere:
+1. **Lente (intrinseca)** — una volta per camera **e** modalità (es. GoPro Linear ≠ GoPro Wide):
+   20–30 s di scacchiera rigida mossa al centro, negli angoli e ai bordi. Da implementare:
+   script OpenCV che salva `calibration/lenses/<camera>_<modo>.json` e undistort prima
+   dell'omografia (P1).
+2. **Campo (omografia)** — per ogni sessione e posizione: frame del campo vuoto + punti
+   manuali (`calibration/futsal_setup.py`, poi web).
+
+## 4. Roadmap
 
 **Adesso (P0)**
 1. Completare A/B su RunPod, scegliere il modello pallone per le riprese reali.
