@@ -61,3 +61,6 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
+
+# Local video recordings (athletes, possibly minors): never commit
+recordings/

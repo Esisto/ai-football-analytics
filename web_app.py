@@ -16,10 +16,12 @@ import streamlit as st
 
 ROOT = Path(__file__).resolve().parent
 WORKSPACE = ROOT / "outputs" / "web_sessions"
+RECORDINGS = ROOT / "recordings"
 SUPPORTED = {".mp4", ".mov", ".m4v", ".avi", ".mkv"}
 MODELS = {
     "YOLO11 Nano, veloce (primo test)": "yolo11n.pt",
     "YOLO11 Small, più pesante": "yolo11s.pt",
+    "YOLO11 Medium, migliore su oggetti piccoli (lento)": "yolo11m.pt",
 }
 CAMERA_TIPS = {
     "Laterale": "Posiziona l'iPhone rialzato, se possibile, e mantieni l'intero campo nell'inquadratura.",
@@ -46,6 +48,7 @@ def read_metrics(output: str) -> dict:
         "throughput": r"throughput:\s*([\d.]+)\s*FPS",
         "people": r"Person detections:\s*(\d+)",
         "ball": r"sports-ball detections:\s*(\d+)",
+        "tiled_balls": r"from \d+x\d+ tiles:\s*(\d+)",
         "ids": r"Distinct tracked IDs \(not distinct people\):\s*(\d+)",
     }
     for name, pattern in patterns.items():
@@ -80,12 +83,15 @@ def local_source(value: str) -> Path:
 
 
 def run_analysis(source: Path, output: Path, model: str, device: str,
-                 max_frames: int, image_size: int) -> subprocess.CompletedProcess:
+                 max_frames: int, image_size: int, person_conf: float,
+                 ball_conf: float, ball_tiles: int) -> subprocess.CompletedProcess:
     command = [
         sys.executable, str(ROOT / "tools" / "mac_smoke_test.py"),
         "--source", str(source), "--output", str(output),
         "--model", model, "--device", device,
         "--max-frames", str(max_frames), "--imgsz", str(image_size),
+        "--person-conf", str(person_conf), "--ball-conf", str(ball_conf),
+        "--ball-tiles", str(ball_tiles),
     ]
     return subprocess.run(command, cwd=ROOT, capture_output=True, text=True,
                           timeout=7200, check=False)
@@ -113,11 +119,27 @@ with right:
                "Gli eventuali pesi YOLO vengono scaricati solo al primo utilizzo.")
 
 st.subheader("1. Scegli il filmato")
-source_mode = st.radio("Sorgente video", ["Carica dal browser", "File già sul Mac"],
+RECORDINGS.mkdir(exist_ok=True)
+source_mode = st.radio("Sorgente video",
+                       ["Cartella recordings", "Carica dal browser", "Altro percorso sul Mac"],
                        horizontal=True)
 uploaded = None
 path_input = ""
-if source_mode == "Carica dal browser":
+if source_mode == "Cartella recordings":
+    videos = sorted((p for p in RECORDINGS.rglob("*")
+                     if p.is_file() and p.suffix.lower() in SUPPORTED),
+                    key=lambda p: p.stat().st_mtime, reverse=True)
+    st.caption(f"Copia i video (anche file grandi, niente limite di upload) in: `{RECORDINGS}`")
+    if st.button("🔄 Aggiorna elenco"):
+        st.rerun()
+    if videos:
+        chosen = st.selectbox(
+            "Video trovati (più recenti in alto)", videos,
+            format_func=lambda p: f"{p.relative_to(RECORDINGS)} · {p.stat().st_size / 1024**2:.0f} MB")
+        path_input = str(chosen)
+    else:
+        st.warning("Nessun video nella cartella recordings. Copiaci un file e premi «Aggiorna elenco».")
+elif source_mode == "Carica dal browser":
     uploaded = st.file_uploader("Seleziona MP4, MOV, M4V, AVI o MKV",
                                 type=["mp4", "mov", "m4v", "avi", "mkv"])
     if uploaded is not None:
@@ -138,8 +160,18 @@ with b:
     max_frames = {"Primi 300 frame (test rapido)": 300,
                   "Primi 900 frame": 900, "Video intero": 0}[limit_label]
 with c:
-    image_size = st.selectbox("Risoluzione analisi", [640, 960, 1280],
-                              help="Valori più alti aumentano il carico sulla GPU.")
+    image_size = st.selectbox("Risoluzione analisi", [640, 960, 1280, 1920], index=2,
+                              help="Con video 4K sotto 1280 il pallone diventa troppo piccolo. "
+                                   "Valori più alti aumentano il carico sulla GPU.")
+
+with st.expander("Soglie di confidenza (avanzate)"):
+    person_conf = st.slider("Soglia persone", 0.05, 0.9, 0.25, 0.05)
+    ball_conf = st.slider("Soglia pallone", 0.02, 0.9, 0.10, 0.01,
+                          help="Più bassa = più palloni trovati ma più falsi positivi.")
+    ball_tiles = st.selectbox("Ricerca pallone a tasselli", [0, 2, 3],
+                              format_func=lambda n: "Disattivata" if n == 0 else f"Griglia {n}×{n} (più lento)",
+                              help="Cerca il pallone anche su porzioni del frame a piena risoluzione. "
+                                   "Utile per il pallone lontano; riquadri arancioni, senza ID.")
 
 with st.expander("Indicazioni per riprese e campi polivalenti"):
     camera = st.selectbox("Posizione della telecamera", list(CAMERA_TIPS))
@@ -165,7 +197,8 @@ if st.button("▶ Analizza il video", type="primary", use_container_width=True):
         output = session / "video_annotato.mp4"
         with st.spinner("Analisi in corso sul Mac. Il primo avvio può scaricare i pesi del modello..."):
             result = run_analysis(source, output, MODELS[selected_model],
-                                  device, max_frames, image_size)
+                                  device, max_frames, image_size,
+                                  person_conf, ball_conf, ball_tiles)
         logs = "\n".join(part for part in (result.stdout, result.stderr) if part)
         if result.returncode != 0 or not output.is_file() or output.stat().st_size == 0:
             st.error("Analisi non completata. Consulta il log per identificare il problema.")
@@ -199,6 +232,8 @@ if report:
             f"Device: {metrics.get('device', 'n.d.')} · "
             f"ID di tracking generati: {metrics.get('ids', 'n.d.')} "
             "(non equivalgono al numero di giocatori unici)."
+            + (f" · Palloni extra da tasselli: {metrics['tiled_balls']}"
+               if "tiled_balls" in metrics else "")
         )
         st.video(str(output_path))
         with output_path.open("rb") as output_stream:

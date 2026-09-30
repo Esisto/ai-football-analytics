@@ -1,0 +1,11 @@
+# ByteTrack tuned for small, fast futsal balls. Identical to Ultralytics'
+# default bytetrack.yaml except new_track_thresh/track_low_thresh, which are
+# lowered so low-confidence ball detections can start and keep a track.
+# Person boxes below --person-conf are filtered after tracking.
+tracker_type: bytetrack
+track_high_thresh: 0.25
+track_low_thresh: 0.05
+new_track_thresh: 0.10
+track_buffer: 30
+match_thresh: 0.8
+fuse_score: True
