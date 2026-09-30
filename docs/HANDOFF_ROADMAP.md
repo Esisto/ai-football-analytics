@@ -10,7 +10,7 @@ metodo di affinamento dei modelli e prossimi passi. Aggiornato al 30/09/2026.
 | Dashboard Streamlit (`web_app.py`) | Funzionante sul Mac. Video da `recordings/` (nessun limite di dimensione), upload o percorso. Output H.264 visibile nel browser. |
 | Persone | Modello generico COCO (YOLO11n/s/m). Buona copertura su video GoPro in angolo; ID instabili negli incroci (42 ID per ~10 persone in 10 s). |
 | Pallone | Modello generico COCO: **0 rilevamenti** su 300 frame di GoPro in angolo. Serve un modello dedicato → sezione 2. |
-| Modello pallone dedicato | `weights/futsal_ball.pt`, usato automaticamente dalla dashboard quando presente. Prova Mac (10% dati, 5 epoche): P 0.73, R 0.50, mAP50 0.55. |
+| Modello pallone dedicato | `weights/futsal_ball.pt` = **D** (vedi sez. 2, risultati RunPod), usato automaticamente dalla dashboard. |
 | Calibrazione | Solo CLI Tkinter (`calibration/futsal_setup.py`); non ancora nel web. |
 | Test | 433/433 passati. |
 
@@ -52,6 +52,25 @@ Augment: `fliplr=0.5`, `flipud=0` (niente capovolgimenti verticali), mosaic con
 - Impostare sempre un limite di spesa: il Mac elimina il pod dopo un tempo massimo
   (`sleep N; runpodctl pod delete <id>` con `caffeinate`), oltre alla chiusura manuale.
 - Una L40S (48 GB) regge due addestramenti in parallelo (A + B).
+
+**Risultati sessione RunPod 30/09/2026** (L40S, costo totale 3,23 $; validazione = 1.738
+immagini da 6 palestre, tranne A validato solo su ScaptureSports):
+
+| Modello | File (`weights/`, non in git) | Dati | P | R | mAP50 | mAP50-95 | FPS Mac* |
+|---|---|---|---|---|---|---|---|
+| Prova Mac | `futsal_ball_mac_trial.pt` | 10% Scapture, 5 ep. | 0.73 | 0.50 | 0.55 | 0.27 | – |
+| A | `futsal_ball_A_s960.pt` | Scapture, 40 ep., s/960 | 0.96 | 0.89 | 0.946 | 0.60 | 6.2 |
+| C | `futsal_ball_C_m1280.pt` | Unito, ~32 ep., m/1280 | 0.96 | 0.91 | 0.950 | 0.66 | 4.2 |
+| **D (default)** | `futsal_ball_D_s1280.pt` | Unito, 37 ep., s/1280 da A | 0.965 | 0.913 | 0.954 | 0.67 | 6.7 |
+
+\* Pipeline completa (persone YOLO11m + pallone) su video 1080p, M5.
+Dataset unito: 8.737 immagini da 6 fonti CC BY 4.0 (`tools/build_ball_dataset.py`,
+attribuzioni in `datasets/futsal_ball_merged/SOURCES.md`). Log e grafici:
+`runs/runpod_2026-09-30/runs_results.tgz`.
+
+Nota: il modello di prova Mac produceva molti falsi positivi (luci del soffitto). La clip
+YouTube GoPro è troppo compressa per giudicare il pallone (quasi invisibile anche a occhio):
+la valutazione vera va fatta sulle riprese proprie.
 
 **Come valutare un nuovo modello:** stessa clip di regressione
 (`recordings/online_gopro_futsal_angolo.mp4`, primi 300 frame), stessa
