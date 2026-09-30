@@ -49,7 +49,9 @@ def main(argv=None) -> int:
     parser.add_argument("--epochs", type=int, default=40)
     parser.add_argument("--imgsz", type=int, default=960, help="Balls are tiny: keep this high")
     parser.add_argument("--batch", type=int, default=8, help="Lower if the Mac runs out of memory")
-    parser.add_argument("--device", default="mps", choices=["mps", "cpu"])
+    parser.add_argument("--device", default="mps",
+                        help="mps (Mac), cpu, or a CUDA GPU index such as 0 (RunPod)")
+    parser.add_argument("--workers", type=int, default=2, help="Data loaders; 8 on a cloud GPU")
     parser.add_argument("--fraction", type=float, default=1.0,
                         help="Use a fraction of the images for a quick trial run (e.g. 0.1)")
     args = parser.parse_args(argv)
@@ -63,7 +65,7 @@ def main(argv=None) -> int:
     run = YOLO(args.base).train(
         data=str(data), epochs=args.epochs, imgsz=args.imgsz, batch=args.batch,
         device=args.device, fraction=args.fraction, project=str(ROOT / "runs" / "ball"),
-        name="futsal_ball", exist_ok=True, patience=10, workers=2,
+        name="futsal_ball", exist_ok=True, patience=10, workers=args.workers,
         # Keep left/right flips; no vertical flips (gravity/perspective matter).
         fliplr=0.5, flipud=0.0, mosaic=1.0, close_mosaic=5, plots=True)
     best = Path(run.save_dir) / "weights" / "best.pt"
