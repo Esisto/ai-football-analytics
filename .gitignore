@@ -64,3 +64,6 @@ Thumbs.db
 
 # Local video recordings (athletes, possibly minors): never commit
 recordings/
+
+# Downloaded training datasets
+datasets/

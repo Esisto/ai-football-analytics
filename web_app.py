@@ -17,6 +17,7 @@ import streamlit as st
 ROOT = Path(__file__).resolve().parent
 WORKSPACE = ROOT / "outputs" / "web_sessions"
 RECORDINGS = ROOT / "recordings"
+BALL_MODEL = ROOT / "weights" / "futsal_ball.pt"
 SUPPORTED = {".mp4", ".mov", ".m4v", ".avi", ".mkv"}
 MODELS = {
     "YOLO11 Nano, veloce (primo test)": "yolo11n.pt",
@@ -84,7 +85,8 @@ def local_source(value: str) -> Path:
 
 def run_analysis(source: Path, output: Path, model: str, device: str,
                  max_frames: int, image_size: int, person_conf: float,
-                 ball_conf: float, ball_tiles: int) -> subprocess.CompletedProcess:
+                 ball_conf: float, ball_tiles: int,
+                 ball_model: Path | None = None) -> subprocess.CompletedProcess:
     command = [
         sys.executable, str(ROOT / "tools" / "mac_smoke_test.py"),
         "--source", str(source), "--output", str(output),
@@ -93,6 +95,8 @@ def run_analysis(source: Path, output: Path, model: str, device: str,
         "--person-conf", str(person_conf), "--ball-conf", str(ball_conf),
         "--ball-tiles", str(ball_tiles),
     ]
+    if ball_model is not None:
+        command += ["--ball-model", str(ball_model)]
     return subprocess.run(command, cwd=ROOT, capture_output=True, text=True,
                           timeout=7200, check=False)
 
@@ -164,6 +168,14 @@ with c:
                               help="Con video 4K sotto 1280 il pallone diventa troppo piccolo. "
                                    "Valori più alti aumentano il carico sulla GPU.")
 
+if BALL_MODEL.is_file():
+    use_ball_model = st.checkbox("Usa il modello pallone futsal addestrato (weights/futsal_ball.pt)",
+                                 value=True)
+else:
+    use_ball_model = False
+    st.caption("Modello pallone futsal non ancora addestrato: si usa il pallone COCO generico "
+               "(vedi tools/train_ball_model.py).")
+
 with st.expander("Soglie di confidenza (avanzate)"):
     person_conf = st.slider("Soglia persone", 0.05, 0.9, 0.25, 0.05)
     ball_conf = st.slider("Soglia pallone", 0.02, 0.9, 0.10, 0.01,
@@ -198,7 +210,8 @@ if st.button("▶ Analizza il video", type="primary", use_container_width=True):
         with st.spinner("Analisi in corso sul Mac. Il primo avvio può scaricare i pesi del modello..."):
             result = run_analysis(source, output, MODELS[selected_model],
                                   device, max_frames, image_size,
-                                  person_conf, ball_conf, ball_tiles)
+                                  person_conf, ball_conf, ball_tiles,
+                                  BALL_MODEL if use_ball_model else None)
         logs = "\n".join(part for part in (result.stdout, result.stderr) if part)
         if result.returncode != 0 or not output.is_file() or output.stat().st_size == 0:
             st.error("Analisi non completata. Consulta il log per identificare il problema.")

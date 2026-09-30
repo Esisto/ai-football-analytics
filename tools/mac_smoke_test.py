@@ -41,11 +41,13 @@ def to_browser_h264(src: Path, dst: Path) -> bool:
 
 
 def tiled_ball_boxes(model, frame, grid: int, device: str, imgsz: int,
-                     conf: float, overlap: float = 0.15) -> list[tuple[int, int, int, int, float]]:
+                     conf: float, overlap: float = 0.15, classes=(BALL,)) -> list[tuple[int, int, int, int, float]]:
     """Detect balls on an overlapping grid x grid split at full resolution.
 
     Far balls in 4K are a few pixels once the whole frame is resized to imgsz;
     each tile keeps far more of them. Slower: grid*grid extra inferences.
+    grid=1 runs once on the whole frame; classes=None keeps every class
+    (for a dedicated ball-only model).
     """
     h, w = frame.shape[:2]
     tw, th = w / grid, h / grid
@@ -56,7 +58,7 @@ def tiled_ball_boxes(model, frame, grid: int, device: str, imgsz: int,
             y0 = max(0, int(row * th - overlap * th))
             x1 = min(w, int((col + 1) * tw + overlap * tw))
             y1 = min(h, int((row + 1) * th + overlap * th))
-            res = model.predict(frame[y0:y1, x0:x1], classes=[BALL], device=device,
+            res = model.predict(frame[y0:y1, x0:x1], classes=list(classes) if classes else None, device=device,
                                 imgsz=imgsz, conf=conf, verbose=False)[0]
             for (bx0, by0, bx1, by1), score in zip(res.boxes.xyxy.cpu().tolist(),
                                                    res.boxes.conf.cpu().tolist()):
@@ -95,6 +97,9 @@ def main(argv=None) -> int:
                         help="Lower than persons: small, blurred balls score low")
     parser.add_argument("--ball-tiles", type=int, default=0, choices=[0, 2, 3],
                         help="Extra full-resolution ball search on an NxN grid (0 = off; slow)")
+    parser.add_argument("--ball-model", default=None,
+                        help="Dedicated ball detector (e.g. weights/futsal_ball.pt from "
+                             "tools/train_ball_model.py); replaces COCO ball detection")
     args = parser.parse_args(argv)
     src = Path(args.source)
     if not src.is_file():
@@ -121,6 +126,12 @@ def main(argv=None) -> int:
 
         device = pick_device(args.device)
         model = YOLO(args.model)
+        ball_model = None
+        if args.ball_model:
+            if not Path(args.ball_model).is_file():
+                raise FileNotFoundError(f"Ball model not found: {args.ball_model}")
+            ball_model = YOLO(args.ball_model)
+        track_classes = [PERSON] if ball_model else [PERSON, BALL]
         fps = float(cap.get(cv2.CAP_PROP_FPS))
         if not (0.1 <= fps <= 240):
             fps = 30.0
@@ -132,7 +143,7 @@ def main(argv=None) -> int:
             # COCO: 0=person, 32=sports ball (not a futsal-specialised checkpoint).
             # Track at the lowest threshold, then apply per-class confidence.
             results = model.track(frame, persist=True, tracker=str(TRACKER),
-                                  classes=[PERSON, BALL], device=device, imgsz=args.imgsz,
+                                  classes=track_classes, device=device, imgsz=args.imgsz,
                                   conf=min(args.person_conf, args.ball_conf), verbose=False)
             result = results[0]
             if result.boxes is not None and len(result.boxes):
@@ -146,7 +157,15 @@ def main(argv=None) -> int:
             if result.boxes is not None and result.boxes.id is not None:
                 unique_ids.update(int(i) for i in result.boxes.id.cpu().tolist())
             annotated = result.plot()
-            if args.ball_tiles:
+            if ball_model is not None:
+                for x0, y0, x1, y1, score in tiled_ball_boxes(
+                        ball_model, frame, max(1, args.ball_tiles), device,
+                        args.imgsz, args.ball_conf, classes=None):
+                    balls_total += 1
+                    cv2.rectangle(annotated, (x0, y0), (x1, y1), (0, 255, 255), 2)
+                    cv2.putText(annotated, f"ball {score:.2f}", (x0, max(0, y0 - 6)),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+            elif args.ball_tiles:
                 found = [tuple(b) for b, c in zip(result.boxes.xyxy.cpu().tolist(), cls)
                          if c == BALL] if result.boxes is not None else []
                 for box in tiled_ball_boxes(model, frame, args.ball_tiles, device,
@@ -173,7 +192,7 @@ def main(argv=None) -> int:
         print(f"Device: {device}")
         print(f"Frames: {processed}; elapsed: {elapsed:.1f}s; throughput: {processed/elapsed:.2f} FPS")
         print(f"Person detections: {people_total}; sports-ball detections: {balls_total}")
-        if args.ball_tiles:
+        if args.ball_tiles and ball_model is None:
             print(f"Extra untracked ball detections from {args.ball_tiles}x{args.ball_tiles} tiles: {tiled_balls}")
         print(f"Distinct tracked IDs (not distinct people): {len(unique_ids)}")
     finally:
