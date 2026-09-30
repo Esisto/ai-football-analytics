@@ -66,9 +66,15 @@ falsi positivi (il conteggio da solo non basta).
 | DJI Osmo Pocket 3 | Qualità in poca luce (sensore 1") | FOV più stretto. Gimbal in **Lock**, ActiveTrack OFF, niente zoom. H.264, 4K 25 fps, colore normale. |
 | iPhone Pro | Seconda vista / confronto | 1× se entra tutto; "Blocca fotocamera" ON; H.264. |
 
+**Al campo non si calibra nulla.** Basta: camera fissa, 10–30 s di campo vuoto (o un
+frame di gioco con linee ben visibili), dimensioni del campo se misurabili. Tutto il resto
+si fa dopo, sul Mac. Anteprima/controllo live da Mac o app iPhone: idea futura, non necessaria.
+
 Due livelli di calibrazione, da non confondere:
-1. **Lente (intrinseca)** — una volta per camera **e** modalità (es. GoPro Linear ≠ GoPro Wide):
-   20–30 s di scacchiera rigida mossa al centro, negli angoli e ai bordi. Da implementare:
+1. **Lente (intrinseca)** — non dipende dal campo: una volta, a casa, per camera **e** modalità
+   (es. GoPro Linear ≠ GoPro Wide). Probabilmente superflua con GoPro Linear (già corretta
+   in camera), iPhone 1× e Osmo; valutarla solo se l'errore della proiezione è alto.
+   Procedura: 20–30 s di scacchiera rigida mossa al centro, negli angoli e ai bordi. Da implementare:
    script OpenCV che salva `calibration/lenses/<camera>_<modo>.json` e undistort prima
    dell'omografia (P1).
 2. **Campo (omografia)** — per ogni sessione e posizione: frame del campo vuoto + punti
